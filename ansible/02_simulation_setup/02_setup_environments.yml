@@ -1,0 +1,28 @@
+---
+- name: Set up Conda environment and install packages
+  hosts: all
+  become: true
+  tasks:
+    - name: Activate Conda environment
+      shell: |
+        source /opt/miniconda/bin/activate qml
+      args:
+        executable: /bin/bash
+
+    - name: Install required packages
+      shell: |
+        conda install -n qml -c conda-forge qiskit dask distributed -y
+      args:
+        executable: /bin/bash
+
+    - name: Verify Qiskit installation
+      shell: |
+        source /opt/miniconda/bin/activate qml && python -c "import qiskit; print(qiskit.__version__)"
+      args:
+        executable: /bin/bash
+      register: qiskit_version
+      changed_when: false
+
+    - name: Print Qiskit version
+      debug:
+        msg: "Qiskit version: {{ qiskit_version.stdout }}"

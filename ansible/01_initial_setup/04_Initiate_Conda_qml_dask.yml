@@ -1,0 +1,98 @@
+---
+- name: Set up Conda environment, install QML packages, and configure Dask
+  hosts: all  # Run on all nodes (management and workers)
+  become: true
+  tasks:
+    # Initialize Conda for the current user
+    - name: Initialize Conda for the current user
+      shell: |
+        /opt/miniconda/bin/conda init bash
+      args:
+        executable: /bin/bash
+
+    # Source Conda in the current shell
+    - name: Source Conda in the current shell
+      shell: |
+        source ~/.bashrc
+      args:
+        executable: /bin/bash
+
+    # Create a new Conda environment called qml
+    - name: Create a new Conda environment called qml
+      shell: |
+        /opt/miniconda/bin/conda create -n qml python=3.9 -y
+      args:
+        executable: /bin/bash
+
+    # Install conda-forge::symengine in the qml environment
+    - name: Install conda-forge::symengine in the qml environment
+      shell: |
+        /opt/miniconda/bin/conda install -n qml -c conda-forge symengine -y
+      args:
+        executable: /bin/bash
+
+    # Install pip packages in the qml environment
+    - name: Install pip packages in the qml environment
+      shell: |
+        /opt/miniconda/bin/conda run -n qml pip install pandas sympy qiskit qiskit-aer pyspark "dask[distributed]" quest
+      args:
+        executable: /bin/bash
+
+    # Export Conda environment to YAML file for reproducibility
+    - name: Export Conda environment to YAML file
+      shell: |
+        /opt/miniconda/bin/conda env export -n qml > /opt/miniconda/envs/qml/environment.yml
+      args:
+        executable: /bin/bash
+
+    # Activate the qml environment and verify Conda
+    - name: Activate the qml environment and verify Conda
+      shell: |
+        source ~/.bashrc && conda activate qml && conda --version
+      args:
+        executable: /bin/bash
+      register: conda_version
+      changed_when: false
+
+    # Print Conda version
+    - name: Print Conda version
+      debug:
+        msg: "Conda version in qml environment: {{ conda_version.stdout }}"
+
+    # Verify installed packages in the qml environment
+    - name: Verify installed packages in the qml environment
+      shell: |
+        source ~/.bashrc && conda activate qml && python -c "import pandas, sympy, qiskit, pyspark, dask, quest; print('All packages imported successfully')"
+      args:
+        executable: /bin/bash
+      register: package_verification
+      changed_when: false
+
+    # Print package verification result
+    - name: Print package verification result
+      debug:
+        msg: "{{ package_verification.stdout }}"
+
+    # Optional: Add Conda environment activation to /etc/profile.d/ for all users
+    - name: Add Conda environment activation to /etc/profile.d/
+      copy:
+        content: |
+          source /opt/miniconda/bin/activate qml
+        dest: /etc/profile.d/conda_qml.sh
+        mode: '0644'
+
+    # Set up Dask scheduler on the management node
+    - name: Start Dask scheduler on management-node
+      shell: |
+        source ~/.bashrc && conda activate qml && dask-scheduler --port 8786 &
+      args:
+        executable: /bin/bash
+      when: inventory_hostname == "management-node"
+
+    # Set up Dask workers on all worker nodes
+    - name: Start Dask workers on worker nodes
+      shell: |
+        source ~/.bashrc && conda activate qml && dask-worker tcp://10.134.12.53:8786 &
+      args:
+        executable: /bin/bash
+      when: inventory_hostname != "management-node"

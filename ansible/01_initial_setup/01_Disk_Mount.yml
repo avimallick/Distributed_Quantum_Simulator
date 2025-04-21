@@ -1,0 +1,32 @@
+---
+- name: Mount 200GB Disk on Worker Nodes
+  hosts: workers
+  become: true
+  tasks:
+    - name: Ensure the mount point exists
+      file:
+        path: /mnt/simulation_data
+        state: directory
+        mode: '0777'
+
+    - name: Check if the disk is already formatted
+      command: blkid /dev/vdb
+      register: disk_check
+      ignore_errors: yes
+
+    - name: Format the disk if unformatted
+      command: mkfs.ext4 /dev/vdb
+      when: disk_check.rc != 0
+
+    - name: Mount the disk
+      mount:
+        path: /mnt/simulation_data
+        src: /dev/vdb
+        fstype: ext4
+        state: mounted
+
+    - name: Ensure disk is added to fstab for persistence
+      lineinfile:
+        path: /etc/fstab
+        line: "/dev/vdb /mnt/simulation_data ext4 defaults 0 0"
+        state: present
