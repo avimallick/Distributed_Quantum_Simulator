@@ -1,0 +1,23 @@
+- name: Install MinIO on all workers
+  hosts: workers
+  become: yes
+  tasks:
+    - name: Create data directory for MinIO
+      file:
+        path: /mnt/simulation_data/minio
+        state: directory
+        owner: ubuntu
+        mode: '0755'
+
+    - name: Download MinIO binary
+      get_url:
+        url: https://dl.min.io/server/minio/release/linux-amd64/minio
+        dest: /usr/local/bin/minio
+        mode: '0755'
+
+    - name: Create MinIO system user
+      user:
+        name: minio-user
+        system: yes
+        shell: /usr/sbin/nologin
+        home: /mnt/simulation_data/minio

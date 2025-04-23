@@ -1,0 +1,39 @@
+- name: Test Dask cluster with parallel prime number check
+  hosts: management
+  become: false
+  tasks:
+    - name: Create test script to run Dask job
+      copy:
+        dest: /home/ubuntu/test_dask_cluster.py
+        content: |
+          from dask.distributed import Client
+          from dask import delayed
+          import math
+
+          def is_prime(n):
+              if n < 2:
+                  return False
+              for i in range(2, int(math.sqrt(n)) + 1):
+                  if n % i == 0:
+                      return False
+              return True
+
+          @delayed
+          def check_prime(n):
+              return is_prime(n)
+
+          if __name__ == "__main__":
+              client = Client("localhost:8786")
+              print("Connected to Dask scheduler:", client)
+
+              numbers = list(range(10_000, 10_200))
+              tasks = [check_prime(n) for n in numbers]
+              futures = client.compute(tasks)
+              results = client.gather(futures)
+
+              primes = [n for n, prime in zip(numbers, results) if prime]
+              print(f"Found {len(primes)} prime numbers:")
+              print(primes)
+
+    - name: Run the Dask test script
+      command: python3 /home/ubuntu/test_dask_cluster.py

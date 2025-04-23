@@ -20,7 +20,7 @@ variable "username" {
 
 variable "keyname" {
   type    = string
-  default = "avinash-cnc"
+  default = "ubuntu-cnc"
 }
 
 variable "vm_count" {

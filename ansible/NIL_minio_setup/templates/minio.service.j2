@@ -1,0 +1,15 @@
+[Unit]
+Description=MinIO Distributed Object Storage
+After=network.target
+
+[Service]
+User=minio-user
+ExecStart=/usr/local/bin/minio server \
+{% for ip in groups['workers'] %}
+http://{{ hostvars[ip].ansible_host }}/mnt/simulation_data/minio 
+{% endfor %}--console-address ":9001"
+Restart=always
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,17 @@
+- name: Push and test S3 access on management-node
+  hosts: management
+  become: false
+  tasks:
+    - name: Ensure boto3 is installed
+      pip:
+        name: boto3
+        state: present
+
+    - name: Copy MinIO test script
+      copy:
+        src: ../scripts/test_minio_s3.py
+        dest: /home/ubuntu/test_minio_s3.py
+        mode: '0755'
+
+    - name: Run MinIO S3 test
+      command: python3 /home/ubuntu/test_minio_s3.py

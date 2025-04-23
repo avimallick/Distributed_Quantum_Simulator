@@ -1,0 +1,12 @@
+- name: Push simulation script and run it on management-node
+  hosts: management
+  become: false
+  tasks:
+    - name: Copy simulation script to management node
+      copy:
+        src: ../scripts/simulate_circuits.py
+        dest: /home/ubuntu/simulate_circuits.py
+        mode: '0755'
+
+    - name: Run the simulation script
+      command: python3 /home/ubuntu/simulate_circuits.py

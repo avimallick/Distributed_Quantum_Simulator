@@ -1,0 +1,29 @@
+- name: Install GlusterFS and probe peers
+  hosts: workers
+  become: yes
+  tasks:
+    - name: Install GlusterFS server and client
+      apt:
+        name:
+          - glusterfs-server
+          - glusterfs-client
+        state: present
+        update_cache: yes
+
+    - name: Ensure GlusterFS service is started
+      systemd:
+        name: glusterd
+        enabled: yes
+        state: started
+
+- name: Probe GlusterFS peers
+  hosts: worker-01
+  become: yes
+  tasks:
+    - name: Add all other workers as peers
+      shell: |
+        {% for peer in groups['workers'] if peer != inventory_hostname %}
+        gluster peer probe {{ hostvars[peer].ansible_host }}
+        {% endfor %}
+      args:
+        executable: /bin/bash
