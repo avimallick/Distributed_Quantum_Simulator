@@ -82,7 +82,7 @@ resource "harvester_virtualmachine" "worker" {
   cpu                  = 4
   memory               = "32Gi"
   efi                  = true
-  secure_boot          = true
+  secure_boot          = false
   run_strategy         = "RerunOnFailure"
   hostname             = "${var.username}-worker-${format("%02d", count.index + 1)}-${random_id.secret.hex}"
   reserved_memory      = "100Mi"
