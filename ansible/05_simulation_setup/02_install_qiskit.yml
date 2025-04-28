@@ -17,4 +17,5 @@
         name:
           - qiskit
           - qiskit-aer
+          - tqdm
         state: present

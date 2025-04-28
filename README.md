@@ -72,6 +72,9 @@ terraform apply
 ```
 
 2. Configure all nodes using Ansible:
+
+In case of re-privisioning, please do update the inventory.ini files with the updated IP addresses. 
+NOTE: All the VMs are Provisioned in Ubuntu
 ```bash
 cd ansible/
 ansible-playbook -i inventory.ini 01_initial_setup.yml
