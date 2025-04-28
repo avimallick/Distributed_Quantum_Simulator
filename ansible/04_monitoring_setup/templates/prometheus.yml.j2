@@ -1,0 +1,16 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'node_exporters'
+    static_configs:
+{% for host in groups['all'] %}
+      - targets:
+          - {{ hostvars[host].ansible_host }}:9100
+{% endfor %}
+
+  - job_name: 'dask_scheduler'
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+        - {{ hostvars['management-node'].ansible_host }}:8787

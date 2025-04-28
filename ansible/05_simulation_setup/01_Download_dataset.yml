@@ -1,0 +1,41 @@
+- name: Download and extract Qiskit-compatible MNISQ QASM dataset
+  hosts: management
+  become: yes
+  vars:
+    dataset_url: "https://qulacs-quantum-datasets.s3.us-west-1.amazonaws.com/base_train_orig_mnist_784_f90.zip"
+    dataset_zip: "/mnt/qasm_shared/input/base_train_orig_mnist_784_f90.zip"
+    extract_path: "/mnt/qasm_shared/input"
+    qasm_dir: "/mnt/qasm_shared/input/base_train_orig_mnist_784_f90/qasm"
+  tasks:
+    - name: Ensure input directory exists
+      file:
+        path: "{{ extract_path }}"
+        state: directory
+        mode: '0777'
+
+    - name: Download base_train_orig MNISQ QASM dataset (Qiskit-compatible)
+      get_url:
+        url: "{{ dataset_url }}"
+        dest: "{{ dataset_zip }}"
+
+    - name: Unzip dataset into input directory
+      unarchive:
+        src: "{{ dataset_zip }}"
+        dest: "{{ extract_path }}"
+        remote_src: yes
+
+    - name: (Optional) Delete ZIP file after extraction
+      file:
+        path: "{{ dataset_zip }}"
+        state: absent
+
+    - name: Rename files in qasm folder to have .qasm extension
+      shell: |
+        cd {{ qasm_dir }}
+        for f in *; do
+          if [[ -f "$f" && "$f" != *.qasm ]]; then
+            mv "$f" "$f.qasm"
+          fi
+        done
+      args:
+        executable: /bin/bash

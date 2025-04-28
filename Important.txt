@@ -1,0 +1,4 @@
+ssh -L 9090:10.134.12.65:9090 ubuntu@<CNC_VM_PUBLIC_IP>
+
+
+ssh -L 3000:10.134.12.65:3000 ubuntu@<CNC_VM_PUBLIC_IP>

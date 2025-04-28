@@ -1,0 +1,29 @@
+- name: Push and run simulation script on management-node
+  hosts: management
+  become: true
+  tasks:
+    - name: Ensure QASM output directory exists
+      file:
+        path: /mnt/qasm_shared/output
+        state: directory
+        mode: '0777'
+
+    - name: Rename files in MNISQ QASM folder to have .qasm extension
+      shell: |
+        cd /mnt/qasm_shared/input/base_test_mnist_784_f90/qasm
+        for f in *; do
+          if [[ -f "$f" && "$f" != *.qasm ]]; then
+            mv "$f" "$f.qasm"
+          fi
+        done
+      args:
+        executable: /bin/bash
+
+    - name: Copy simulation script to management node
+      copy:
+        src: ../scripts/simulate_circuits.py
+        dest: /home/ubuntu/simulate_circuits.py
+        mode: '0755'
+
+    - name: Run the simulation script
+      command: python3 /home/ubuntu/simulate_circuits.py

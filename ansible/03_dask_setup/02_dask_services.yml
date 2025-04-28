@@ -1,0 +1,64 @@
+- name: Setup Dask Scheduler service on management node
+  hosts: management
+  become: yes
+  tasks:
+      - name: Create Dask scheduler systemd unit
+        copy:
+            dest: /etc/systemd/system/dask-scheduler.service
+            content: |
+                [Unit]
+                Description=Dask Scheduler
+                After=network.target
+
+                [Service]
+                Type=simple
+                Environment=DASK_DISTRIBUTED__DIAGNOSTICS__PROMETHEUS=True
+                ExecStart=/usr/local/bin/dask-scheduler --port 8786 --dashboard-address=":8787"
+                User=ubuntu
+                WorkingDirectory=/home/ubuntu
+
+                [Install]
+                WantedBy=multi-user.target
+
+      - name: Reload systemd daemon
+        systemd:
+            daemon_reload: yes
+
+      - name: Enable and start scheduler service
+        systemd:
+            name: dask-scheduler
+            enabled: yes
+            state: restarted
+
+- name: Setup Dask Worker services on all worker nodes
+  hosts: workers
+  become: yes
+  tasks:
+      - name: Create Dask worker systemd unit
+        copy:
+            dest: /etc/systemd/system/dask-worker.service
+            content: |
+                [Unit]
+                Description=Dask Worker
+                After=network.target
+
+                [Service]
+                Type=simple
+                Environment=DASK_DISTRIBUTED__DIAGNOSTICS__PROMETHEUS=True
+                ExecStart=/usr/local/bin/dask-worker {{ hostvars['management-node'].ansible_host }}:8786 --nthreads 4 --memory-limit auto --local-directory /mnt/qasm_shared/dask-worker-space
+                Restart=always
+                User=ubuntu
+                WorkingDirectory=/home/ubuntu
+
+                [Install]
+                WantedBy=multi-user.target
+
+      - name: Reload systemd daemon
+        systemd:
+            daemon_reload: yes
+
+      - name: Enable and start worker service
+        systemd:
+            name: dask-worker
+            enabled: yes
+            state: restarted
