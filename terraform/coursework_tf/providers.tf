@@ -1,2 +1,0 @@
-provider "harvester" {}
-provider "random" {}
