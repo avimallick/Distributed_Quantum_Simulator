@@ -73,7 +73,8 @@ Configure all nodes using Ansible:
 > **Important:** All playbooks are organized in numbered directories. Run each sequentially like this:
 ```bash
 cd ansible/
-ansible-playbook -i inventory.ini 01_initial_setup/disk_mount.yml
+ansible-playbook -i inventory.ini 01_initial_setup/01_disk_mount.yml
+ansible-playbook -i inventory.ini 01_initial_setup/02_initial_setup.yml
 ansible-playbook -i inventory.ini 02_glusterfs_setup/01_install_and_peer.yml
 ansible-playbook -i inventory.ini 02_glusterfs_setup/02_create_volume.yml
 ansible-playbook -i inventory.ini 02_glusterfs_setup/03_mount_volume.yml
