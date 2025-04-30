@@ -43,7 +43,7 @@ def main():
         os.path.join(INPUT_DIR, f)
         for f in os.listdir(INPUT_DIR)
         if f.endswith(".qasm")
-    ])[:500]
+    ])#[:500]
 
     n = len(files)
     if n == 0:
