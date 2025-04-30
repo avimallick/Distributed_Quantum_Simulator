@@ -1,6 +1,6 @@
 from dask.distributed import Client
 from dask import delayed
-from qiskit import QuantumCircuit, ClassicalRegister
+from qiskit import QuantumCircuit
 from qiskit.quantum_info import Statevector
 import numpy as np
 import os
@@ -8,32 +8,32 @@ import json
 import time
 from tqdm import tqdm
 
+# Constants
 INPUT_DIR = "/mnt/qasm_shared/input/base_train_orig_mnist_784_f90/qasm"
 OUTPUT_DIR = "/mnt/qasm_shared/output"
 KERNEL_FILE = os.path.join(OUTPUT_DIR, "kernel_matrix.json")
+BATCH_SIZE = 5000  # Adjust if needed
 
-@delayed
 def simulate_and_overlap(file1, file2):
-    """Simulate two circuits and compute their overlap."""
+    """Load two circuits and prepare statevectors."""
     with open(file1, 'r') as f:
         qasm_code1 = f.read()
     qc1 = QuantumCircuit.from_qasm_str(qasm_code1)
-    if qc1.num_clbits == 0:
-        qc1.add_register(ClassicalRegister(qc1.num_qubits))
-        qc1.measure_all()
-    state1 = Statevector.from_instruction(qc1)
 
     with open(file2, 'r') as f:
         qasm_code2 = f.read()
     qc2 = QuantumCircuit.from_qasm_str(qasm_code2)
-    if qc2.num_clbits == 0:
-        qc2.add_register(ClassicalRegister(qc2.num_qubits))
-        qc2.measure_all()
+
+    state1 = Statevector.from_instruction(qc1)
     state2 = Statevector.from_instruction(qc2)
 
+    return delayed(compute_overlap)(state1, state2)
+
+@delayed
+def compute_overlap(state1, state2):
+    """Compute the overlap between two statevectors."""
     overlap = np.abs(state1.data.conj().dot(state2.data)) ** 2
     return overlap
-
 
 def main():
     client = Client("localhost:8786")
@@ -53,29 +53,38 @@ def main():
     print(f"🚀 Computing quantum kernel matrix for {n} circuits...")
     start_time = time.time()
 
-    # Create tasks
+    # Precompute all (i, j) pairs
     keys = []
-    tasks = []
+    pairs = []
     for i in range(n):
         for j in range(i, n):
             keys.append((i, j))
-            tasks.append(simulate_and_overlap(files[i], files[j]))
+            pairs.append((files[i], files[j]))
 
-    print("⏳ Submitting tasks to Dask cluster...")
-
-    # Persist and Gather
-    futures = client.persist(tasks)
-    results_list = client.gather(futures)  # 👈👈 BIG CHANGE HERE
-
-    # Build result mapping
-    results = dict(zip(keys, results_list))
-
-    # Build symmetric kernel matrix
     K = np.zeros((n, n))
-    for (i, j), value in results.items():
-        K[i, j] = value
-        K[j, i] = value
 
+    print(f"📦 Total overlaps: {len(pairs)}. Processing in batches of {BATCH_SIZE}...")
+
+    for batch_start in tqdm(range(0, len(pairs), BATCH_SIZE), desc="Batches"):
+        batch_pairs = pairs[batch_start:batch_start+BATCH_SIZE]
+        batch_keys = keys[batch_start:batch_start+BATCH_SIZE]
+
+        # Create batch tasks
+        batch_tasks = [simulate_and_overlap(f1, f2) for f1, f2 in batch_pairs]
+
+        # Submit batch
+        futures = client.persist(batch_tasks)
+        computed = client.gather(futures)
+
+        # 🛠 Fix: force compute any delayed values
+        results = [value.compute() if hasattr(value, 'compute') else value for value in computed]
+
+        # Fill K matrix
+        for (i, j), value in zip(batch_keys, results):
+            K[i, j] = value
+            K[j, i] = value  # Symmetric
+
+    # Save kernel matrix
     with open(KERNEL_FILE, "w") as f:
         json.dump(K.tolist(), f)
 
