@@ -12,7 +12,7 @@ from tqdm import tqdm
 INPUT_DIR = "/mnt/qasm_shared/input/base_train_orig_mnist_784_f90/qasm"
 OUTPUT_DIR = "/mnt/qasm_shared/output"
 KERNEL_FILE = os.path.join(OUTPUT_DIR, "kernel_matrix.json")
-BATCH_SIZE = 5000  # Adjust if needed
+BATCH_SIZE = 1000  # Adjust if needed
 
 def simulate_and_overlap(file1, file2):
     """Load two circuits and prepare statevectors."""
@@ -43,7 +43,7 @@ def main():
         os.path.join(INPUT_DIR, f)
         for f in os.listdir(INPUT_DIR)
         if f.endswith(".qasm")
-    ])#[:500]
+    ])[:5000]
 
     n = len(files)
     if n == 0:
