@@ -83,22 +83,36 @@ def main():
         # Create futures for this chunk
         futures = []
         for i, j in index_chunk:
-            futures.append((compute_overlap(files[i], files[j]), i, j))
+            future = compute_overlap(files[i], files[j])
+            futures.append((future, i, j))
         
         # Submit all futures at once
-        future_objects = client.compute([f[0] for f in futures])
+        future_objects = [client.compute(f[0]) for f in futures]
         
-        # Process results in smaller batches as they complete
-        for batch in tqdm(as_completed(future_objects, with_results=True).batches(PROCESSING_BATCH_SIZE),
-                         desc="Processing results", total=(len(futures)//PROCESSING_BATCH_SIZE + 1)):
-            
-            # Update the kernel matrix with the completed results
-            for future_result, (_, i, j) in zip(batch, futures):
-                K[i, j] = future_result
-                K[j, i] = future_result  # Symmetric matrix
+        # Process results as they complete
+        remaining = len(future_objects)
+        with tqdm(total=remaining, desc="Processing results") as pbar:
+            for batch in as_completed(future_objects).batches():
+                # Update progress
+                batch_size = len(batch)
+                pbar.update(batch_size)
                 
-        # Remove references to help with garbage collection
-        del futures, future_objects
+                # Get results for this batch
+                results = client.gather(batch)
+                
+                # Update kernel matrix
+                for future, result in zip(batch, results):
+                    # Find corresponding indices
+                    idx = future_objects.index(future)
+                    _, i, j = futures[idx]
+                    
+                    # Update matrix
+                    K[i, j] = result
+                    K[j, i] = result  # Symmetric matrix
+        
+        # Clean up to help garbage collection
+        del futures
+        del future_objects
         
     # Save the kernel matrix
     with open(KERNEL_FILE, "w") as f:
