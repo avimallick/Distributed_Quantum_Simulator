@@ -166,8 +166,3 @@ Users can run simulations on any `.qasm` dataset by following these steps:
 - Grafana dashboards include live tracking of Workers, CPU usage, Memory, and Tasks.
 - Project setup verified for Dask version 2025.x (latest CLI changes considered).
 - Resilient to reboots; services auto-restart.
-
----
-
-## License
-This project is created for educational purposes as part of COMP0239 coursework.
