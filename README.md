@@ -124,6 +124,7 @@ Users can run simulations on any `.qasm` dataset by following these steps:
    files = sorted([...])[:500]
    ```
    Comment or edit this line to simulate the full dataset.
+   Would recommend due to the inaccuracies in the MNISQ dataset, to randomise or use this dataset as a lot of the of the QASM files are left unused (Recommended range anywhere between 10,000 - 60,000, could simulate this in a list)
 
 4. **Re-run Simulation**
    ```bash
