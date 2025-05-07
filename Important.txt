@@ -1,3 +1,0 @@
-ssh -L 3000:10.134.12.65:3000 ubuntu@10.134.12.24
-
-This is used to open grafana to you system.
